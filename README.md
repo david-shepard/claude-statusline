@@ -8,7 +8,7 @@ An enhanced multi-line status line for [Claude Code](https://claude.com/claude-c
 - GitButler support: displays active GitButler branches when on `gitbutler/workspace`
 - Falls back to regular git branch display when not using GitButler
 - Shows current model name with its effort level (color-coded) and a thinking-mode indicator when extended thinking is on
-- Cost tracking via [goccc](https://github.com/backstabslash/goccc) (session + daily cost in your local currency)
+- Cost tracking with native USD→local conversion (session + daily cost), no external CLI required
 - Rate limit progress bar (5-hour window with time remaining, color-coded green/yellow/red)
 - Falls back to session duration display when rate limit data isn't available
 - Context window progress bar and token usage display
@@ -17,17 +17,17 @@ An enhanced multi-line status line for [Claude Code](https://claude.com/claude-c
 ## Status Line Example
 
 ```
-📂 xylem · 🤖 Opus 4.7 · ⚡ high · 🤔
-🌿 gb/feature-a, gb/feature-b, gb/feature-c + 2 more
-💸 A$1.21 session · 💰 A$48.00 today · ⏱️ ██░░░░░░░░ 23% 4h0m left
-💭 █░░░░░░░░░ 11% ctx · 🧠 45k in / 12k out
+📂 my-app · 🤖 Opus 4.7 (1M context) · ⚡ high · 🤔
+🌿 gb/dark-mode, gb/billing-fixes, gb/onboarding-copy + 2 more
+💸 A$3.14 session · 💰 A$72.50 today · ⏱️ ████░░░░░░ 42% 2h15m left
+💭 ███░░░░░░░ 31% ctx · 🧠 89k in / 14k out
 ```
 
 Each line groups related information:
 
 | Line | Purpose | Contents |
 |------|---------|----------|
-| 1 | **Identity + Model** | 📂 Repo name · 🤖 Model · ⚡ Effort · 🤔 Thinking flag |
+| 1 | **Identity + Model** | 📂 Repo name · 🤖 Model (with context variant in parens, e.g. `(1M context)`, when Claude Code reports one) · ⚡ Effort · 🤔 Thinking flag |
 | 2 | **Branches** | 🌿/🔀 Branch (or as many GitButler branches as fit + `+ N more`) |
 | 3 | **Spend & limits** | 💸 Session cost · 💰 Daily cost · ⏱️ Rate limit bar |
 | 4 | **Technical** | 💭 Context usage bar · 🧠 Token counts |
@@ -59,9 +59,8 @@ curl -sSL https://raw.githubusercontent.com/gordonbeeming/claude-statusline/main
 ```
 
 This will:
-1. Install/upgrade [goccc](https://github.com/backstabslash/goccc) via Homebrew
-2. Copy `statusline.sh` to `~/.claude/scripts/`
-3. Print instructions for updating your `~/.claude/settings.json`
+1. Copy `statusline.sh` to `~/.claude/scripts/`
+2. Print instructions for updating your `~/.claude/settings.json`
 
 After running the installer, add this to your `~/.claude/settings.json`:
 
@@ -74,9 +73,18 @@ After running the installer, add this to your `~/.claude/settings.json`:
 
 ## Dependencies
 
-- [goccc](https://github.com/backstabslash/goccc) — CLI cost calculator for Claude Code (session + daily costs with currency conversion)
-- [jq](https://jqlang.github.io/jq/) — for parsing JSON input and GitButler output
+- [jq](https://jqlang.github.io/jq/) — for parsing JSON input, GitButler output, and the transcript cost calculation
 - [GitButler CLI](https://docs.gitbutler.com/cli-overview) (`but`) — optional, for GitButler branch display
+
+## Currency
+
+Set `STATUSLINE_CURRENCY` (default `AUD`) to choose the display currency. Set it to `USD` for zero-network behaviour. Other supported codes with a custom symbol: `GBP`, `EUR`, `NZD`, `CAD`, `JPY`. Any ISO 4217 code with a rate on [open.er-api.com](https://open.er-api.com) also works; unknown codes render with the code as a prefix (e.g. `CHF 12.34`). Anything that doesn't match the ISO shape (three uppercase letters) silently falls back to AUD.
+
+The USD→local rate is fetched once per day and cached at `~/.claude/scripts/.fx-cache-<CCY>`. If the fetch fails and no cached rate is available, the statusline falls back to USD silently.
+
+## Cost calculation
+
+Daily cost is computed by scanning `~/.claude/projects/*/*.jsonl` for today's usage records and pricing them against an inline table for the Opus / Sonnet / Haiku families (source: [anthropic.com/pricing](https://www.anthropic.com/pricing)). The result is cached for 60 seconds. If you start seeing zeros after a new model release, update the pricing table near the top of `statusline.sh`.
 
 ## Auto-Updates
 
