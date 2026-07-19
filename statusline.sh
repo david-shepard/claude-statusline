@@ -311,9 +311,9 @@ make_bar() {
   elif (( pct >= 70 )); then bar_color="$YELLOW"
   else bar_color="$GREEN"; fi
   local bar filled_bar empty_bar
-  filled_bar=$(printf "%${filled}s" '')
+  printf -v filled_bar "%${filled}s" ""
   filled_bar=${filled_bar// /█}
-  empty_bar=$(printf "%${empty}s" '')
+  printf -v empty_bar "%${empty}s" ""
   empty_bar=${empty_bar// /░}
   bar="${filled_bar}${empty_bar}"
   printf '%b%s%b' "$bar_color" "$bar" "$RESET"
